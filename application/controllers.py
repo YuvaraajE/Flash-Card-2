@@ -1,16 +1,41 @@
 from flask.helpers import flash
-from main import app, Cards, Decks, UserDecks, DeckCards
+from main import app, Cards, Decks, UserDecks, DeckCards, User
 from flask import render_template
 from flask import request, url_for, redirect
 from flask_security import login_required, current_user
 from main import db
+import json
 from random import randint
 import datetime
+import uuid 
+import requests
 
+
+# --------------------------- Register New User -------------------------------
+@app.route("/register_user", methods=["POST"])
+def register_user():
+    mail = request.form.get('u_email')
+    uname = request.form.get('u_name')
+    pwd = request.form.get('u_pwd')
+    new_user = User(username=uname, password=pwd, email=mail, fs_uniquifier=uuid.uuid4().hex[:10], active=1)
+    db.session.add(new_user)
+    db.session.commit()
+    return redirect(url_for("dashboard"))
+    
 # --------------------------- Home Page -------------------------------
 @app.route("/")
 @login_required
 def dashboard():
+    #TODO get auth token
+    # Authentication token 
+    r = requests.post('http://localhost/login?include_auth_token', 
+                    data=json.dumps({'email':current_user.email, 'password':current_user.password}), 
+                    headers={'content-type': 'application/json'})
+
+    response = r.json()
+    token = response['response']['user']['authentication_token']
+    print(token)    
+
     # Get all decks of user to display it
     user_decks = UserDecks.query.filter_by(user_id=current_user.id).all()
     # Used to store no. of cards in each deck
@@ -21,7 +46,7 @@ def dashboard():
         deck_cards = DeckCards.query.filter_by(deck_id = user_deck.deck_id).all()
         card_num = len(deck_cards)
         decks[d] = card_num
-    return render_template("index.html", user=current_user, decks = decks.keys(), cards = decks) 
+    return render_template("index.html", user=current_user, decks = decks.keys(), cards = decks, token=token) 
 
 # ----------------------- Deck Management ----------------------------- 
 @app.route("/add", methods=["POST"])

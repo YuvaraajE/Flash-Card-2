@@ -138,5 +138,13 @@
         <p class="text-dark display-4">No deck is found, add a new one!</p>
     </div>
     {% endif %}
+
+    <!-- Setting local storage for auth token  -->
+    <script>
+        window.onload = function() {
+        let token = "{{token}}"
+        localStorage.setItem("token", token);
+};
+    </script>
 </body>
 </html>

@@ -13,6 +13,8 @@ app.config['SECURITY_REGISTERABLE'] = True
 app.config['SECURITY_PASSWORD_HASH'] = "plaintext"
 app.config['SECURITY_SEND_REGISTER_EMAIL'] = False
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['WTF_CSRF_ENABLED'] = False
+app.config['SECURITY_TOKEN_AUTHENTICATION_HEADER'] = "Authentication-Token"
 
 db = SQLAlchemy(app)
 db.init_app(app)
@@ -26,6 +28,7 @@ from wtforms.validators import DataRequired
 
 class ExtendedRegisterForm(RegisterForm):
     username = StringField('Username', [DataRequired()])
+    fs_unique = StringField('Unique String', [DataRequired()])
 
 # -------------------- Models -------------------------
 roles_user = db.Table('roles_user'
