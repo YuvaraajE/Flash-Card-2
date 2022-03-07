@@ -2,7 +2,7 @@ from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_security import Security, SQLAlchemySessionUserDatastore
 from flask_security import UserMixin, RoleMixin
-from flask_cors import CORS
+from flask_cors import CORS,cross_origin
 
 # ----------------- Configurations --------------------------------
 
@@ -15,11 +15,13 @@ app.config['SECURITY_SEND_REGISTER_EMAIL'] = False
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['WTF_CSRF_ENABLED'] = False
 app.config['SECURITY_TOKEN_AUTHENTICATION_HEADER'] = "Authentication-Token"
+app.config['CORS_HEADERS'] = 'Content-Type'
 
 db = SQLAlchemy(app)
 db.init_app(app)
 # For COR problem in SwaggerUI
-CORS(app)
+CORS(app, resources={r'/*': {'origins': '*'}})
+
 
 # ----------------- Extending RegisterForm for register view ----------------------
 from flask_security import RegisterForm
@@ -85,4 +87,4 @@ from application.api import *
 from application.controllers import *
 
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', port='8080', debug=True)
+    app.run(host='localhost', port='8080', debug=True)

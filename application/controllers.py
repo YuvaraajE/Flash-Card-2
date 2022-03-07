@@ -2,14 +2,19 @@ from flask.helpers import flash
 from main import app, Cards, Decks, UserDecks, DeckCards, User
 from flask import render_template
 from flask import request, url_for, redirect
-from flask_security import login_required, current_user
+from flask_cors import cross_origin
+from flask_security import login_required, current_user, auth_token_required
 from main import db
 import json
 from random import randint
 import datetime
-import uuid 
+import uuid
 import requests
 
+user = {
+    "username": "", 
+    "id": ""
+}
 
 # --------------------------- Register New User -------------------------------
 @app.route("/register_user", methods=["POST"])
@@ -22,19 +27,20 @@ def register_user():
     db.session.commit()
     return redirect(url_for("dashboard"))
     
+    
 # --------------------------- Home Page -------------------------------
 @app.route("/")
 @login_required
 def dashboard():
-    #TODO get auth token
     # Authentication token 
-    r = requests.post('http://localhost/login?include_auth_token', 
+    user["username"] = current_user.username
+    user["id"] = current_user.id
+    r = requests.post('http://localhost:8080/login?include_auth_token', 
                     data=json.dumps({'email':current_user.email, 'password':current_user.password}), 
                     headers={'content-type': 'application/json'})
 
     response = r.json()
     token = response['response']['user']['authentication_token']
-    print(token)    
 
     # Get all decks of user to display it
     user_decks = UserDecks.query.filter_by(user_id=current_user.id).all()
@@ -46,7 +52,7 @@ def dashboard():
         deck_cards = DeckCards.query.filter_by(deck_id = user_deck.deck_id).all()
         card_num = len(deck_cards)
         decks[d] = card_num
-    return render_template("index.html", user=current_user, decks = decks.keys(), cards = decks, token=token) 
+    return render_template("index.html", user=current_user, decks = decks.keys(), cards = decks) 
 
 # ----------------------- Deck Management ----------------------------- 
 @app.route("/add", methods=["POST"])
@@ -228,4 +234,29 @@ def review(deck_id):
         card.count = card.count + 1 
         db.session.commit()
         return redirect(url_for("review", deck_id = deck_id, cards=cards, num_cards=card_count))
+
+
+# APIs 
+@app.route('/api/getUserDetails')
+def getUserId():
+    return json.dumps(user)
+
+@app.route("/api/getDeckDetails")
+def getDeckDetails():
+    decks = {}
+    user_decks = UserDecks.query.filter_by(user_id=user["id"]).all()
+    for user_deck in user_decks:
+        d = Decks.query.filter_by(deck_id=user_deck.deck_id).first()
+        deck_cards = DeckCards.query.filter_by(deck_id = user_deck.deck_id).all()
+        card_num = len(deck_cards)
+        decks[user_deck.deck_id] = {}
+        decks[user_deck.deck_id]["name"] = d.name
+        decks[user_deck.deck_id]["score"] = d.score
+        if d.last_reviewed:
+            decks[user_deck.deck_id]["last_reviewed"] = d.last_reviewed.strftime("%m/%d/%Y, %H:%M:%S")
+        else:
+            decks[user_deck.deck_id]["last_reviewed"] = d.last_reviewed
+        decks[user_deck.deck_id]["count"] = card_num
+        decks[user_deck.deck_id]["id"] = user_deck.deck_id
+    return json.dumps(decks)
 
