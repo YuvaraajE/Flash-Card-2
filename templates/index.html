@@ -11,7 +11,6 @@
         <!----------------------------------------- Navigation bar ---------------------------------------------------->
         <nav-bar :username="username"></nav-bar>
         <!--------------------------------------------- Error messages ---------------------------------------------------->
-        <!-- TODO if time chage to vue  -->
         {% for message in get_flashed_messages() %}
             {% if message != "Please log in to access this page." %}
                 <div class="alert alert-danger alert-dismissible fade show">
@@ -30,66 +29,12 @@
                                 <!-- ----------------------------Bootstrap Modals----------------------------------------- -->
 
         <!------------------------------------------------- Add deck Modal - Create Deck Form ---------------------------------------------------------------->
-        <div class="modal fade" id="addDeckModal" tabindex="-1" role="dialog" aria-labelledby="addDeckModalLabel" aria-hidden="true">
-            <div class="modal-dialog modal-dialog-centered" role="document">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="addDeckModalLabel">Create a new deck</h5>
-                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                            <span aria-hidden="true" class="text-danger">&times;</span>
-                        </button>
-                    </div>
-                    <div class="modal-body">
-                        <form action="/add" method="post" id="add_deck">
-                            <div class="form-group">
-                                <label for="deck_name">Name</label>
-                                <input type="text" id ="deck_name" name="deck_name" class="form-control" placeholder="Enter deck name" required>
-                            </div>
-                        </form>
-                    </div>
-                    <div class="modal-footer">
-                        <button form="add_deck" class="btn btn-success">Create</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
+        <deck-modal :decks="decks" :last_deck_id="last_deck_id"></deck-modal>
         <!------------------------------------------------- Add Card Modal - Add Card Form ---------------------------------------------------------------->
-        <div class="modal fade" id="addCardModal" tabindex="-1" role="dialog" aria-labelledby="addCardModalLabel" aria-hidden="true">
-            <div class="modal-dialog modal-dialog-centered" role="document">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="addCardModalLabel">Add a new card</h5>
-                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                            <span aria-hidden="true" class="text-danger">&times;</span>
-                        </button>
-                    </div>
-                    <div class="modal-body">
-                        <form action="/add_card" method="post" id="add_card">
-                            <div class="form-group">
-                                <label for="deck_name">Choose a Deck</label>
-                                <select id="deck_name" name="deck_name" class="form-control">
-                                    <option v-for="deck in decks" :value="deck.id">[[deck.name]]</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label for="card_front">Question</label>
-                                <input type="text" class="form-control" id="card_front" name="card_front" placeholder="Enter question" required>
-                            </div>
-                            <div class="form-group">
-                                <label for="card_back">Answer</label>
-                                <input type="text" class="form-control" id="card_back" name="card_back" placeholder="Enter answer" required>
-                            </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button form="add_card" class="btn btn-success">Add</button>
-                    </div>
-                </div>
-            </div>
-        </div>
+        <card-modal :decks="decks"></card-modal>
         <!------------------------------------------ User's Decks --------------------------------------->
         <div v-if="decks" class="d-flex flex-wrap">
-            <user-deck v-for="deck in decks" :deck="deck"></user-deck>
+            <user-deck v-for="deck in decks" v-bind:key="deck.id" :data="deck" :deck="deck"></user-deck>
         </div>
         <div v-else class="d-flex m-5 justify-content-center">
             <p class="text-dark display-4">No deck is found, add a new one!</p>

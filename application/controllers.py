@@ -3,7 +3,7 @@ from main import app, Cards, Decks, UserDecks, DeckCards, User
 from flask import render_template
 from flask import request, url_for, redirect
 from flask_cors import cross_origin
-from flask_security import login_required, current_user, auth_token_required
+from flask_security import login_required, current_user, auth_required
 from main import db
 import json
 from random import randint
@@ -13,7 +13,8 @@ import requests
 
 user = {
     "username": "", 
-    "id": ""
+    "id": "", 
+    "token": ""
 }
 
 # --------------------------- Register New User -------------------------------
@@ -35,12 +36,14 @@ def dashboard():
     # Authentication token 
     user["username"] = current_user.username
     user["id"] = current_user.id
-    r = requests.post('http://localhost:8080/login?include_auth_token', 
-                    data=json.dumps({'email':current_user.email, 'password':current_user.password}), 
-                    headers={'content-type': 'application/json'})
 
-    response = r.json()
-    token = response['response']['user']['authentication_token']
+    if not user["token"]:
+        r = requests.post('http://localhost:8080/login?include_auth_token', 
+                        data=json.dumps({'email':current_user.email, 'password':current_user.password}), 
+                        headers={'content-type': 'application/json'})
+
+        response = r.json()
+        user["token"] = response['response']['user']['authentication_token']
 
     # Get all decks of user to display it
     user_decks = UserDecks.query.filter_by(user_id=current_user.id).all()
@@ -52,27 +55,28 @@ def dashboard():
         deck_cards = DeckCards.query.filter_by(deck_id = user_deck.deck_id).all()
         card_num = len(deck_cards)
         decks[d] = card_num
-    return render_template("index.html", user=current_user, decks = decks.keys(), cards = decks) 
+    return render_template("index.html", token=user["token"]) 
 
 # ----------------------- Deck Management ----------------------------- 
 @app.route("/add", methods=["POST"])
-@login_required
+@auth_required("token")
 def add():
-    name = request.form['deck_name']
+    name = request.json.get("deck_name")
+    id = request.json.get("deck_id")
     if name is None or name == '':
         flash(message = "Name can't be empty")
         return redirect(url_for("dashboard"))
     else:
-        new_deck = Decks(name=name)
+        new_deck = Decks(name=name, deck_id=id)
         db.session.add(new_deck)
         db.session.commit()
         new_user_deck = UserDecks(user_id = current_user.id, deck_id = new_deck.deck_id)
         db.session.add(new_user_deck)
         db.session.commit()
-    return redirect(url_for("dashboard"))
+        return 200
 
 @app.route("/delete/<int:deck_id>")
-@login_required
+@auth_required("token")
 def delete(deck_id):
     #Delete all cards related to deck
     d = Decks.query.filter_by(deck_id=deck_id).first()
@@ -94,7 +98,7 @@ def delete(deck_id):
     return redirect(url_for("dashboard"))
 
 @app.route("/edit/<int:deck_id>", methods=["GET", "POST"])
-@login_required
+@auth_required("token")
 def edit(deck_id):
     deck = Decks.query.filter_by(deck_id = deck_id).first()
     name = deck.name
@@ -119,10 +123,10 @@ def edit(deck_id):
 
 # ---------------------- Card Management ---------------------------
 @app.route("/add_card", methods=["POST"])
-@login_required
+@auth_required("token")
 def add_card():
-    ques = request.form['card_front']
-    ans = request.form['card_back']
+    ques = request.json.get("card_front")
+    ans = request.json.get("card_back")
     flag = True
     if ques is None or ques == '':
         flash(message = "Question can't be empty")
@@ -132,7 +136,7 @@ def add_card():
         flag = False
     # Ques and ans is not empty - flag = True
     if flag:
-        deck_id = request.form['deck_name']
+        deck_id = request.json.get('deck_id')
         new_card = Cards(front = ques, back = ans, score = 0, count = 0)
         db.session.add(new_card)
         db.session.commit()
@@ -142,7 +146,7 @@ def add_card():
     return redirect(url_for("dashboard"))
 
 @app.route("/edit_card/<int:card_id>", methods=["POST"])
-@login_required
+@auth_required("token")
 def edit_card(card_id):
     card = Cards.query.filter_by(card_id = card_id).first()
     deck_card = DeckCards.query.filter_by(card_id = card_id).first()
@@ -163,7 +167,7 @@ def edit_card(card_id):
 
 
 @app.route("/delete_card/<int:card_id>")
-@login_required
+@auth_required("token")
 def delete_card(card_id):
     card = Cards.query.filter_by(card_id =card_id).first()
     if card is None:
@@ -179,7 +183,7 @@ def delete_card(card_id):
 
 # ------------------- Deck Review --------------------------------
 @app.route("/review/<int:deck_id>", methods=["GET", "POST"])
-@login_required
+@auth_required("token")
 def review(deck_id):
     # Basic Validation
     deck = Decks.query.filter_by(deck_id = deck_id).first()
@@ -260,3 +264,11 @@ def getDeckDetails():
         decks[user_deck.deck_id]["id"] = user_deck.deck_id
     return json.dumps(decks)
 
+@app.route("/api/getMaxDeckID")
+def getMaxDeckID():
+    m = -1
+    decks = Decks.query.all()
+    for deck in decks:
+        if deck.deck_id > m:
+            m = deck.deck_id
+    return json.dumps({'max_id': m})

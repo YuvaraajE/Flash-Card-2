@@ -55,7 +55,7 @@ class Role(db.Model, RoleMixin):
 
 class Decks(db.Model):
     __tablename__ = 'decks'
-    deck_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    deck_id = db.Column(db.Integer, primary_key=True, autoincrement=False)
     name = db.Column(db.String, nullable=False)
     score = db.Column(db.String)
     last_reviewed = db.Column(db.DateTime)
