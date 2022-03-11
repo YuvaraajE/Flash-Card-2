@@ -73,12 +73,13 @@ def add():
         new_user_deck = UserDecks(user_id = current_user.id, deck_id = new_deck.deck_id)
         db.session.add(new_user_deck)
         db.session.commit()
-        return 200
+    return 200
 
-@app.route("/delete/<int:deck_id>")
+@app.route("/delete/", methods=["POST"])
 @auth_required("token")
-def delete(deck_id):
+def delete():
     #Delete all cards related to deck
+    deck_id = request.json.get("deck_id")
     d = Decks.query.filter_by(deck_id=deck_id).first()
     if d is not None:
         deck_cards = DeckCards.query.filter_by(deck_id=deck_id).all()
@@ -95,7 +96,7 @@ def delete(deck_id):
         db.session.commit()
     else:
         flash(message = "Deck can't be found")
-    return redirect(url_for("dashboard"))
+    return 200
 
 @app.route("/edit/<int:deck_id>", methods=["GET", "POST"])
 @auth_required("token")
@@ -110,15 +111,13 @@ def edit(deck_id):
             cards.append(card)
         return render_template("edit_deck.html", deck=deck, cards = cards)
     else:
-        new_name = request.form['deck_name']
+        new_name = request.json.get("deck_name")
         if new_name is None or new_name == '':
             flash('Name must not be empty!')
             return redirect(url_for("edit", deck_id = deck_id))
         if new_name != name:
             deck.name = new_name
             db.session.commit()
-
-    return redirect(url_for("dashboard"))
             
 
 # ---------------------- Card Management ---------------------------
@@ -272,3 +271,16 @@ def getMaxDeckID():
         if deck.deck_id > m:
             m = deck.deck_id
     return json.dumps({'max_id': m})
+
+@app.route("/api/getDeckDetail/<int:deck_id>")
+def getDeckDetail(deck_id):
+    deck = Decks.query.filter_by(deck_id = deck_id).first()
+    d_deck = {}
+    d_deck["id"] = deck.deck_id
+    d_deck["name"] = deck.name
+    d_deck["score"] = deck.score
+    if deck.last_reviewed:
+        d_deck["last_reviewed"] = deck.last_reviewed.strftime("%m/%d/%Y, %H:%M:%S")
+    else:
+        d_deck["last_reviewed"] = deck.last_reviewed
+    return json.dumps(d_deck)

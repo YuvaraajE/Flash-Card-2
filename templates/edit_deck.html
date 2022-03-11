@@ -7,14 +7,9 @@
         <title>Edit Deck</title>
     </head>
     <body>
-
-        <!----------------------------------------- Navigation bar ---------------------------------------------------->
-        <nav class="navbar navbar-expand-lg navbar-light" style="background-color: #e4e4e4;">
-            <div class="container-fluid">
-                <a class="navbar-brand" href="/">Dashboard</a>
-                <button type="button" class="btn btn-outline-danger" onclick="location.href='/logout';">logout</button>
-            </div>
-        </nav>
+        <div id="app2">
+            <!----------------------------------------- Navigation bar ---------------------------------------------------->
+        <nav-bar :username="username"></nav-bar>
 
         <!--------------------------------------------- Error messages ---------------------------------------------------->
         {% for message in get_flashed_messages() %}
@@ -27,7 +22,7 @@
         {% endfor %}
 
         <!--------------------------------------------- All Cards in the deck ------------------------------------------>
-        <h2 class="m-3"><span class="font-weight-light font-italic">{{deck.name}}</span> - Cards</h2>
+        <h2 class="m-3"><span class="font-weight-light font-italic">[[deck.name]]</span> - Cards</h2>
         {% if cards %}
         <div class="m-3">
             <table class="table table-striped">
@@ -101,20 +96,14 @@
         })
         </script>
         <!-------------------------------------------------------------- Edit Deck ------------------------------------------------------------->
-        <h2 class="m-3">Edit Deck</h2>
-        <div class="m-3">
-            <form action="/edit/{{deck.deck_id}}" method="post">
-                <div class="form-group">
-                    <label for="deck_name">Name</label>
-                    <input type="text" id="deck_name" name="deck_name" value="{{deck.name}}" class="form-control" required>
-                </div>
-                <button type="submit" class="btn btn-success">Edit</button>
-            </form>
+        <edit-deck :deck="deck"></edit-deck>
         </div>
         <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
         <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.js"></script>
+        <script src="/static/scripts/edit_deck.js"></script>
+        <script src="https://unpkg.com/vue-router@4"></script>
     </body>
 </html>
