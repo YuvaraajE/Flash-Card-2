@@ -144,14 +144,13 @@ def add_card():
         db.session.commit()
     return redirect(url_for("dashboard"))
 
-@app.route("/edit_card/<int:card_id>", methods=["POST"])
+@app.route("/edit_card", methods=["POST"])
 @auth_required("token")
-def edit_card(card_id):
+def edit_card():
+    card_id = request.json.get('card_id')
     card = Cards.query.filter_by(card_id = card_id).first()
-    deck_card = DeckCards.query.filter_by(card_id = card_id).first()
-    deck = Decks.query.filter_by(deck_id = deck_card.deck_id).first()
-    front = request.form['front']
-    back = request.form['back']
+    front = request.json.get('card_front')
+    back = request.json.get('card_back')
 
     if (front != '' and back != ''):
         card.front = front
@@ -162,12 +161,12 @@ def edit_card(card_id):
             flash("Question can't be empty!")
         if back is None or back == '':
             flash("Answer can't be empty!")
-    return redirect(url_for("edit", deck_id = deck.deck_id))
 
 
-@app.route("/delete_card/<int:card_id>")
+@app.route("/delete_card/", methods=["POST"])
 @auth_required("token")
-def delete_card(card_id):
+def delete_card():
+    card_id = request.json.get("id")
     card = Cards.query.filter_by(card_id =card_id).first()
     if card is None:
         flash("Card not found or can't be deleted!")
@@ -178,7 +177,6 @@ def delete_card(card_id):
             db.session.delete(deck_card)
         db.session.delete(card)
         db.session.commit()
-    return redirect(url_for("edit", deck_id = deck_card.deck_id))
 
 # ------------------- Deck Review --------------------------------
 @app.route("/review/<int:deck_id>", methods=["GET", "POST"])
@@ -284,3 +282,12 @@ def getDeckDetail(deck_id):
     else:
         d_deck["last_reviewed"] = deck.last_reviewed
     return json.dumps(d_deck)
+
+@app.route("/api/getCardDetail/<int:deck_id>")
+def getCardDetail(deck_id):
+    deck_cards = DeckCards.query.filter_by(deck_id = deck_id).all()
+    cards = {}
+    for deck_card in deck_cards:
+        card = Cards.query.filter_by(card_id = deck_card.card_id).first()
+        cards[card.card_id] = {"front": card.front, "back": card.back, "id": card.card_id}
+    return json.dumps(cards)

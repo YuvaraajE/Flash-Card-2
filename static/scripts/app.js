@@ -126,9 +126,6 @@ Vue.component('card-modal',
     submitForm: async function() {
       $("#addCardModal").modal("hide");
       token = localStorage.getItem('token')
-      card_front = this.card_front
-      card_back = this.card_back
-      deck_id = this.deck_id
       await fetch('/add_card?auth_token='+token, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
