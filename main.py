@@ -3,6 +3,29 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_security import Security, SQLAlchemySessionUserDatastore
 from flask_security import UserMixin, RoleMixin
 from flask_cors import CORS,cross_origin
+# ----------------- Extending RegisterForm for register view ----------------------
+from flask_security import RegisterForm
+from wtforms import StringField
+from wtforms.validators import DataRequired
+from celery import Celery
+
+def make_celery(app):
+    with app.app_context():
+        celery = Celery(
+            app.import_name,
+            backend=app.config['CELERY_RESULT_BACKEND'],
+            broker=app.config['CELERY_BROKER_URL'],
+            enable_utc = True,     
+            timezone = 'UTC'
+        )
+        celery.conf.update(app.config)
+    class ContextTask(celery.Task):
+        def __call__(self, *args, **kwargs):
+            with app.app_context():
+                return self.run(*args, **kwargs)
+
+    celery.Task = ContextTask
+    return celery
 
 # ----------------- Configurations --------------------------------
 
@@ -16,17 +39,14 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['WTF_CSRF_ENABLED'] = False
 app.config['SECURITY_TOKEN_AUTHENTICATION_HEADER'] = "Authentication-Token"
 app.config['CORS_HEADERS'] = 'Content-Type'
+app.config['CELERY_BROKER_URL'] = 'redis://localhost:6379/1'
+app.config['CELERY_RESULT_BACKEND'] = 'redis://localhost:6379/2'
 
 db = SQLAlchemy(app)
 db.init_app(app)
 # For COR problem in SwaggerUI
 CORS(app, resources={r'/*': {'origins': '*'}})
-
-
-# ----------------- Extending RegisterForm for register view ----------------------
-from flask_security import RegisterForm
-from wtforms import StringField
-from wtforms.validators import DataRequired
+celery = make_celery(app)
 
 class ExtendedRegisterForm(RegisterForm):
     username = StringField('Username', [DataRequired()])
@@ -78,6 +98,7 @@ class DeckCards(db.Model):
     __tablename__ = 'deck_cards'
     deck_id = db.Column(db.Integer,  db.ForeignKey("decks.deck_id"), primary_key=True) 
     card_id = db.Column(db.Integer, db.ForeignKey("cards.card_id"), primary_key=True)
+
 
 # Setup Flask-Security
 user_datastore = SQLAlchemySessionUserDatastore(db.session, User, Role)

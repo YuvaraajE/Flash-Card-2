@@ -4,6 +4,7 @@ from flask import render_template
 from flask import request, url_for, redirect
 from flask_cors import cross_origin
 from flask_security import login_required, current_user, auth_required
+from application import tasks
 from main import db
 import json
 from random import randint
@@ -28,7 +29,8 @@ def register_user():
     db.session.commit()
     return redirect(url_for("dashboard"))
     
-    
+
+
 # --------------------------- Home Page -------------------------------
 @app.route("/")
 @login_required
@@ -195,15 +197,14 @@ def review(deck_id):
     cards = []
 
     # Check which cards need to be reviewed
-    card_count = 0
-    for deck_card in deck_cards:
-        card = Cards.query.filter_by(card_id = deck_card.card_id).first()
-        card_count += 1
-        if card.score < 18:
-            cards.append(card)
     
     if request.method == "GET":
-        cur_card = -1
+        card_count = 0
+        for deck_card in deck_cards:
+            card = Cards.query.filter_by(card_id = deck_card.card_id).first()
+            card_count += 1
+            if card.score < 18:
+                cards.append(card)
         if not cards:
             sum_count = 0
             count = 0
@@ -218,13 +219,13 @@ def review(deck_id):
             deck.last_reviewed = datetime.datetime.now()
             db.session.commit()
         else:
-            cur_card = cards[randint(0, len(cards) - 1)]
-        return render_template("review.html", deck = deck, card = cur_card, cards=cards, num_cards = card_count)
+            return render_template("review.html")
+        
     
     # POST
     else:
-        eval = request.form['eval']
-        card_id = request.form['card_id']
+        eval = request.json.get("eval")
+        card_id = request.json.get('card_id')
         card = Cards.query.filter_by(card_id = card_id).first()
         if eval == "easy":
             card.score = card.score + 9
@@ -234,7 +235,6 @@ def review(deck_id):
             card.score = card.score + 3
         card.count = card.count + 1 
         db.session.commit()
-        return redirect(url_for("review", deck_id = deck_id, cards=cards, num_cards=card_count))
 
 
 # APIs 
@@ -277,6 +277,9 @@ def getDeckDetail(deck_id):
     d_deck["id"] = deck.deck_id
     d_deck["name"] = deck.name
     d_deck["score"] = deck.score
+    deck_cards = DeckCards.query.filter_by(deck_id = deck.deck_id).all()
+    card_num = len(deck_cards)
+    d_deck["count"] = card_num
     if deck.last_reviewed:
         d_deck["last_reviewed"] = deck.last_reviewed.strftime("%m/%d/%Y, %H:%M:%S")
     else:
@@ -289,5 +292,15 @@ def getCardDetail(deck_id):
     cards = {}
     for deck_card in deck_cards:
         card = Cards.query.filter_by(card_id = deck_card.card_id).first()
-        cards[card.card_id] = {"front": card.front, "back": card.back, "id": card.card_id}
+        cards[card.card_id] = {}
+        cards[card.card_id]["front"] = card.front 
+        cards[card.card_id]["back"] = card.back
+        cards[card.card_id]["id"] =  card.card_id 
+        cards[card.card_id]["score"] = card.score 
+        cards[card.card_id]["count"] =  card.count
     return json.dumps(cards)
+
+@app.route("/hello")
+def hello():
+    job = tasks.sendMessage.delay(current_user.id, current_user.username)
+    return str(job) +" " + str(current_user.id), 200

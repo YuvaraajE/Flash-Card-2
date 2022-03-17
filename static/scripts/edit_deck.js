@@ -32,7 +32,7 @@ Vue.component('show-cards', {
                   <th scope="row">{{index + 1}}</th>
                   <td>{{card.front}}</td>
                   <td>{{card.back}}</td>
-                      <td><button type ="button" @click="setSelectedCard(card.id)" class="btn btn-outline-dark mr-2" data-bs-toggle="modal" data-bs-target="#editCardModal" data-bs-card_id = "card.id" data-bs-front = "card.front" data-bs-back = "card.back">Edit</button> 
+                      <td><button type ="button" @click="setSelectedCard(card.id, card.front, card.back)" class="btn btn-outline-dark mr-2" data-bs-toggle="modal" data-bs-target="#editCardModal" data-bs-card_id = "card.id" data-bs-front = "card.front" data-bs-back = "card.back">Edit</button> 
                       <button v-on:click="delete_card('http://localhost:8080/delete_card/', card.id)" class="btn btn-outline-danger">Delete</button> </td>
               </tr>
           </tbody>
@@ -96,8 +96,10 @@ Vue.component('show-cards', {
         });
         this.$parent.editCard(this.card_id, this.card_front, this.card_back)
       },
-      setSelectedCard: function(id){
+      setSelectedCard: function(id, front, back){
         this.card_id = id
+        this.card_front = front
+        this.card_back = back
       }
   },
   data() {
