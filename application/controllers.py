@@ -1,7 +1,7 @@
 from flask.helpers import flash
 from main import app, Cards, Decks, UserDecks, DeckCards, User
 from flask import render_template
-from flask import request, url_for, redirect
+from flask import request, url_for, redirect, send_file
 from flask_cors import cross_origin
 from flask_security import login_required, current_user, auth_required
 from application import tasks
@@ -304,3 +304,10 @@ def getCardDetail(deck_id):
 def hello():
     job = tasks.sendMessage.delay(current_user.id, current_user.username)
     return str(job) +" " + str(current_user.id), 200
+
+@app.route("/export")
+def export():
+    job = tasks.exportDeck.delay(current_user.id)
+    while job.state != "SUCCESS":
+        pass
+    return send_file('user_decks.csv',  as_attachment=True)
