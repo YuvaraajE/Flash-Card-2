@@ -1,13 +1,11 @@
-from flask.helpers import flash
 from main import app, Cards, Decks, UserDecks, DeckCards, User
-from flask import render_template
+from flask import render_template, flash
 from flask import request, url_for, redirect, send_file
 from flask_cors import cross_origin
 from flask_security import login_required, current_user, auth_required
 from application import tasks
 from main import db
 import json
-from random import randint
 import datetime
 import uuid
 import requests
@@ -75,7 +73,6 @@ def add():
         new_user_deck = UserDecks(user_id = current_user.id, deck_id = new_deck.deck_id)
         db.session.add(new_user_deck)
         db.session.commit()
-    return 200
 
 @app.route("/delete/", methods=["POST"])
 @auth_required("token")
@@ -83,7 +80,7 @@ def delete():
     #Delete all cards related to deck
     deck_id = request.json.get("deck_id")
     d = Decks.query.filter_by(deck_id=deck_id).first()
-    user = UserDecks.query.filter_by(id=current_user.id)
+    user = User.query.filter_by(id=current_user.id).first()
     if d is not None:
         deck_cards = DeckCards.query.filter_by(deck_id=deck_id).all()
         for deck_card in deck_cards:
@@ -100,7 +97,6 @@ def delete():
         db.session.commit()
     else:
         flash(message = "Deck can't be found")
-    return 200
 
 @app.route("/edit/<int:deck_id>", methods=["GET", "POST"])
 @auth_required("token")
@@ -196,6 +192,7 @@ def review(deck_id):
     deck_cards = DeckCards.query.filter_by(deck_id = deck_id).all()
 
     if len(deck_cards) == 0:
+        print("No cards")
         flash("No cards in the deck!")
         return redirect(url_for("dashboard"))
     cards = []
@@ -305,7 +302,7 @@ def getCardDetail(deck_id):
         cards[card.card_id]["count"] =  card.count
     return json.dumps(cards)
 
-@app.route("/hello")
+@app.route("/remaind")
 def hello():
     job = tasks.sendMessage.delay(current_user.id, current_user.username)
     return str(job) +" " + str(current_user.id), 200
@@ -324,4 +321,4 @@ def report():
     while job.state != "SUCCESS":
         pass
     file = current_user.username + '_monthly_report.pdf'
-    return 200
+    return send_file(file, as_attachment=True)

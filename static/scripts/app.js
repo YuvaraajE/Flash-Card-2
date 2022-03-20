@@ -165,7 +165,7 @@ Vue.component('user-deck', {
         body: JSON.stringify(content) 
       });
     }, 
-    delete_deck: async function(url, deck_id) {
+    delete_deck: function(url, deck_id) {
       this.$parent.delDeck(deck_id)
       this.authAndPost(url, {'deck_id': deck_id})
     } 
