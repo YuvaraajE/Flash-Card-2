@@ -24,7 +24,7 @@ def register_user():
     mail = request.form.get('u_email')
     uname = request.form.get('u_name')
     pwd = request.form.get('u_pwd')
-    new_user = User(username=uname, password=pwd, email=mail, fs_uniquifier=uuid.uuid4().hex[:10], active=1)
+    new_user = User(username=uname, password=pwd, email=mail, curr_streak = 0, max_streak = 0, decks_deleted = 0,  fs_uniquifier=uuid.uuid4().hex[:10], active=1)
     db.session.add(new_user)
     db.session.commit()
     return redirect(url_for("dashboard"))
@@ -69,7 +69,7 @@ def add():
         flash(message = "Name can't be empty")
         return redirect(url_for("dashboard"))
     else:
-        new_deck = Decks(name=name, deck_id=id)
+        new_deck = Decks(name=name, deck_id=id, tot_score=0, cards_deleted=0)
         db.session.add(new_deck)
         db.session.commit()
         new_user_deck = UserDecks(user_id = current_user.id, deck_id = new_deck.deck_id)
@@ -83,6 +83,7 @@ def delete():
     #Delete all cards related to deck
     deck_id = request.json.get("deck_id")
     d = Decks.query.filter_by(deck_id=deck_id).first()
+    user = UserDecks.query.filter_by(id=current_user.id)
     if d is not None:
         deck_cards = DeckCards.query.filter_by(deck_id=deck_id).all()
         for deck_card in deck_cards:
@@ -95,6 +96,7 @@ def delete():
         for user_deck in user_decks:
             db.session.delete(user_deck)
         db.session.delete(d)
+        user.decks_deleted += 1
         db.session.commit()
     else:
         flash(message = "Deck can't be found")
@@ -175,8 +177,10 @@ def delete_card():
         return redirect(url_for("dashboard"))
     else:
         deck_card = DeckCards.query.filter_by(card_id = card_id).first()
+        deck = Decks.query.filter_by(deck_id = deck_card.deck_id).first()
         if deck_card:
             db.session.delete(deck_card)
+        deck.cards_deleted += 1
         db.session.delete(card)
         db.session.commit()
 
@@ -216,6 +220,7 @@ def review(deck_id):
                 count += 1
             avg_count = sum_count // count
             deck.score = avg_count
+            deck.tot_score += avg_count
             deck.last_reviewed = datetime.datetime.now()
             db.session.commit()
         else:
@@ -311,3 +316,12 @@ def export():
     while job.state != "SUCCESS":
         pass
     return send_file('user_decks.csv',  as_attachment=True)
+
+
+@app.route("/report")
+def report():
+    job = tasks.sendReport.delay(current_user.id, current_user.username)
+    while job.state != "SUCCESS":
+        pass
+    file = current_user.username + '_monthly_report.pdf'
+    return 200

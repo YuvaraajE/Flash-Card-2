@@ -1,0 +1,22 @@
+.header {
+    background-color: red;
+    height: 35px;
+    content: "";
+    min-height: 100%;
+}
+
+.footer {
+    background-color: rgb(241, 241, 241);
+    padding: 15px;
+}
+
+.rightSideStats {
+    font-size: 24px;
+    font-style: italic;
+    font-weight: 400;
+}
+
+.li {
+    font-size: 18px;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}

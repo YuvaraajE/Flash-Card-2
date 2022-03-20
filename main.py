@@ -65,6 +65,9 @@ class User(db.Model, UserMixin):
     password = db.Column(db.String(255), nullable=False)
     active = db.Column(db.Boolean())
     fs_uniquifier = db.Column(db.String(255), unique=True, nullable=False)
+    decks_deleted = db.Column(db.Integer, default=0)
+    curr_streak = db.Column(db.Integer, default=0)
+    highest_streak = db.Column(db.Integer, default=0)
     roles = db.relationship('Role', secondary=roles_user, backref=db.backref('users', lazy='dynamic'))
 
 class Role(db.Model, RoleMixin):
@@ -79,6 +82,8 @@ class Decks(db.Model):
     name = db.Column(db.String, nullable=False)
     score = db.Column(db.String)
     last_reviewed = db.Column(db.DateTime)
+    tot_score = db.Column(db.Integer, default=0)
+    cards_deleted = db.Column(db.Integer, default=0)
     user_decks = db.relationship("User", secondary="user_decks")
 
 class Cards(db.Model):
