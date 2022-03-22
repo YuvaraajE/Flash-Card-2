@@ -1,3 +1,4 @@
+from email import encoders
 from main import app, Cards, Decks, UserDecks, DeckCards, User
 from flask import render_template, flash
 from flask import request, url_for, redirect, send_file
@@ -9,11 +10,17 @@ import json
 import datetime
 import uuid
 import requests
+import smtplib
+from main import cache
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from email.mime.base import MIMEBase
 
 user = {
     "username": "", 
     "id": "", 
-    "token": ""
+    "token": "", 
+    "email": ""
 }
 
 # --------------------------- Register New User -------------------------------
@@ -36,6 +43,7 @@ def dashboard():
     # Authentication token 
     user["username"] = current_user.username
     user["id"] = current_user.id
+    user["email"] = current_user.email
 
     if not user["token"]:
         r = requests.post('http://localhost:8080/login?include_auth_token', 
@@ -69,9 +77,10 @@ def add():
     else:
         new_deck = Decks(name=name, deck_id=id, tot_score=0, cards_deleted=0)
         db.session.add(new_deck)
-        db.session.commit()
         new_user_deck = UserDecks(user_id = current_user.id, deck_id = new_deck.deck_id)
         db.session.add(new_user_deck)
+        cache.delete('max_id')
+        cache.delete('deck_detail')
         db.session.commit()
 
 @app.route("/delete/", methods=["POST"])
@@ -94,6 +103,8 @@ def delete():
             db.session.delete(user_deck)
         db.session.delete(d)
         user.decks_deleted += 1
+        cache.delete('max_id')
+        cache.delete('deck_detail')
         db.session.commit()
     else:
         flash(message = "Deck can't be found")
@@ -117,6 +128,8 @@ def edit(deck_id):
             return redirect(url_for("edit", deck_id = deck_id))
         if new_name != name:
             deck.name = new_name
+            cache.delete('max_id')
+            cache.delete('deck_detail')
             db.session.commit()
             
 
@@ -247,7 +260,7 @@ def getUserId():
 @app.route("/api/getDeckDetails")
 def getDeckDetails():
     decks = {}
-    user_decks = UserDecks.query.filter_by(user_id=user["id"]).all()
+    user_decks = UserDecks.query.filter_by(user_id=current_user.id).all()
     for user_deck in user_decks:
         d = Decks.query.filter_by(deck_id=user_deck.deck_id).first()
         deck_cards = DeckCards.query.filter_by(deck_id = user_deck.deck_id).all()
@@ -303,7 +316,7 @@ def getCardDetail(deck_id):
     return json.dumps(cards)
 
 @app.route("/remaind")
-def hello():
+def remaind():
     job = tasks.sendMessage.delay(current_user.id, current_user.username)
     return str(job) +" " + str(current_user.id), 200
 
@@ -321,4 +334,24 @@ def report():
     while job.state != "SUCCESS":
         pass
     file = current_user.username + '_monthly_report.pdf'
-    return send_file(file, as_attachment=True)
+    SMPTP_SERVER_HOST = "localhost"
+    SMPTP_SERVER_PORT = 1025
+    SENDER_ADDRESS = 'admin@flaskcard.org'
+    SENDER_PASSWORD = ''
+    msg = MIMEMultipart()
+    msg["From"] = SENDER_ADDRESS
+    msg["To"] = user["email"]
+    msg["Subject"] = 'Monthly Flash Cards Stats Report'
+    with open(file, 'rb') as f:
+        attachment = MIMEBase('application', 'octet-stream')
+        attachment.set_payload(f.read())
+    encoders.encode_base64(attachment)
+    attachment.add_header('Content-Disposition', f'attachment; filename= {file}')
+    msg.attach(attachment)
+    message = f"{current_user.username}'s monthly performance report. The report can be downloaded from MIME section."
+    msg.attach(MIMEText(message, "html"))
+    s = smtplib.SMTP(host=SMPTP_SERVER_HOST, port=SMPTP_SERVER_PORT)
+    s.login(SENDER_ADDRESS, SENDER_PASSWORD)
+    s.send_message(msg)
+    s.quit()
+    return redirect(url_for("dashboard"))

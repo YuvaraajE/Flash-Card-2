@@ -119,7 +119,7 @@ Vue.component('nav-bar', {
           Welcome back, {{username}}
       </span>
       <!-- Clear the local storage auth token and logout the user -->
-      <button type="button" class="btn btn-outline-danger" onclick="localStorage.removeItem('token');location.href='/logout';">logout</button>
+      <button type="button" class="btn btn-outline-danger" onclick="localStorage.removeItem('token');localStorage.removeItem('currentDeckID');location.href='/logout';">logout</button>
   </div>
   </nav>`
 })
@@ -179,7 +179,7 @@ var app = new Vue({
       decks: {}, 
       last_deck_id: ''
     },
-    created: async function () {
+    mounted: function () {
       this.getUserDetail()
       this.getDeckDetail()
       fetch('/api/getMaxDeckID').then(response => response.json()).then(data => this.last_deck_id = data["max_id"])

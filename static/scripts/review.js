@@ -8,7 +8,7 @@ Vue.component('nav-bar', {
             Welcome back, {{username}}
         </span>
         <!-- Clear the local storage auth token and logout the user -->
-        <button type="button" class="btn btn-outline-danger" onclick="localStorage.removeItem('token');location.href='/logout';">logout</button>
+        <button type="button" class="btn btn-outline-danger" onclick="localStorage.removeItem('token');localStorage.removeItem('currentDeckID');location.href='/logout';">logout</button>
     </div>
     </nav>`
   })

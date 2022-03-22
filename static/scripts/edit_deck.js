@@ -8,7 +8,7 @@ Vue.component('nav-bar', {
             Welcome back, {{username}}
         </span>
         <!-- Clear the local storage auth token and logout the user -->
-        <button type="button" class="btn btn-outline-danger" onclick="localStorage.removeItem('token');location.href='/logout';">logout</button>
+        <button type="button" class="btn btn-outline-danger" onclick="localStorage.removeItem('token');localStorage.removeItem('currentDeckID');location.href='/logout';">logout</button>
     </div>
   </nav>`
 })
@@ -32,7 +32,7 @@ Vue.component('show-cards', {
                   <th scope="row">{{index + 1}}</th>
                   <td>{{card.front}}</td>
                   <td>{{card.back}}</td>
-                      <td><button type ="button" @click="setSelectedCard(card.id, card.front, card.back)" class="btn btn-outline-dark mr-2" data-bs-toggle="modal" data-bs-target="#editCardModal" data-bs-card_id = "card.id" data-bs-front = "card.front" data-bs-back = "card.back">Edit</button> 
+                      <td><button type ="button" @click="setSelectedCard(card.id, card.front, card.back)" class="btn btn-outline-dark mr-2" data-toggle="modal" data-target="#editCardModal" data-card_id = "card.id" data-front = "card.front" data-back = "card.back">Edit</button> 
                       <button v-on:click="delete_card('http://localhost:8080/delete_card/', card.id)" class="btn btn-outline-danger">Delete</button> </td>
               </tr>
           </tbody>
@@ -42,7 +42,8 @@ Vue.component('show-cards', {
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title" id="editCardModalLabel">Edit a card</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true" class="text-danger">&times;</span>
                     </button>
                 </div>
                 <div class="modal-body">

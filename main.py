@@ -8,6 +8,7 @@ from flask_security import RegisterForm
 from wtforms import StringField
 from wtforms.validators import DataRequired
 from celery import Celery
+from flask_caching import Cache
 
 def make_celery(app):
     with app.app_context():
@@ -41,12 +42,17 @@ app.config['SECURITY_TOKEN_AUTHENTICATION_HEADER'] = "Authentication-Token"
 app.config['CORS_HEADERS'] = 'Content-Type'
 app.config['CELERY_BROKER_URL'] = 'redis://localhost:6379/1'
 app.config['CELERY_RESULT_BACKEND'] = 'redis://localhost:6379/2'
+app.config['CACHE_TYPE'] = "RedisCache"
+app.config['CACHE_REDIS_HOST'] = "localhost"
+app.config['CACHE_REDIS_PORT'] = 6379
 
 db = SQLAlchemy(app)
 db.init_app(app)
 # For COR problem in SwaggerUI
 CORS(app, resources={r'/*': {'origins': '*'}})
 celery = make_celery(app)
+cache = Cache(app)
+app.app_context().push()
 
 class ExtendedRegisterForm(RegisterForm):
     username = StringField('Username', [DataRequired()])
