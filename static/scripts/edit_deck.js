@@ -16,7 +16,7 @@ Vue.component('nav-bar', {
 Vue.component('show-cards', {
   props: ['cards', 'deck'],
   template: `
-  <div v-if="cards" class="m-3">
+  <div v-if="Object.keys(cards).length !== 0" class="m-3">
   <h2 class="m-3"><span class="font-weight-light font-italic">{{deck.name}}</span> - Cards</h2>    
   <table class="table table-striped">
           <thead class="thead-dark">

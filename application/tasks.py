@@ -15,6 +15,7 @@ webhook_url = 'https://chat.googleapis.com/v1/spaces/AAAAXWdk-54/messages?key=AI
 @celery.on_after_finalize.connect
 def daily_remaider_jobs(sender, **kwargs):
     sender.add_periodic_task(crontab(hour=20, minute=0, day_of_week='*', day_of_month='*',month_of_year='*'), sendMessage.s(current_user.id,current_user.username))
+    sender.add_periodic_task(crontab(hour=20, minute=0, day_of_month='1',month_of_year='*'), sendReport.s(current_user.id,current_user.username))
 
 @celery.task()
 def sendMessage(id, name):

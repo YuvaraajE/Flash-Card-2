@@ -35,7 +35,7 @@
         <!------------------------------------------------- Add Card Modal - Add Card Form ---------------------------------------------------------------->
         <card-modal :decks="decks"></card-modal>
         <!------------------------------------------ User's Decks --------------------------------------->
-        <div v-if="decks" class="d-flex flex-wrap">
+        <div v-if="Object.keys(decks).length !== 0" class="d-flex flex-wrap">
             <user-deck v-for="deck in decks" v-bind:key="deck.id" :data="deck" :deck="deck"></user-deck>
         </div>
         <div v-else class="d-flex m-5 justify-content-center">

@@ -182,7 +182,7 @@ var app = new Vue({
     mounted: function () {
       this.getUserDetail()
       this.getDeckDetail()
-      fetch('/api/getMaxDeckID').then(response => response.json()).then(data => this.last_deck_id = data["max_id"])
+      fetch('/api/getMaxDeckID', {headers:{'Authentication-Token': localStorage.getItem('token')}}).then(response => response.json()).then(data => this.last_deck_id = data["max_id"])
     },
     methods: {
       getUserDetail: function () {

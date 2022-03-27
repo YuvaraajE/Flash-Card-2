@@ -15,6 +15,7 @@ from main import cache
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.base import MIMEBase
+import os
 
 user = {
     "username": "", 
@@ -29,7 +30,7 @@ def register_user():
     mail = request.form.get('u_email')
     uname = request.form.get('u_name')
     pwd = request.form.get('u_pwd')
-    new_user = User(username=uname, password=pwd, email=mail, curr_streak = 0, max_streak = 0, decks_deleted = 0,  fs_uniquifier=uuid.uuid4().hex[:10], active=1)
+    new_user = User(username=uname, password=pwd, email=mail, curr_streak = 0, highest_streak = 0, decks_deleted = 0,  fs_uniquifier=uuid.uuid4().hex[:10], active=1)
     db.session.add(new_user)
     db.session.commit()
     return redirect(url_for("dashboard"))
@@ -54,7 +55,7 @@ def dashboard():
         user["token"] = response['response']['user']['authentication_token']
 
     # Get all decks of user to display it
-    user_decks = UserDecks.query.filter_by(user_id=current_user.id).all()
+    user_decks = c_get_user_decks(current_user.id)
     # Used to store no. of cards in each deck
     decks = {}
 
@@ -79,8 +80,8 @@ def add():
         db.session.add(new_deck)
         new_user_deck = UserDecks(user_id = current_user.id, deck_id = new_deck.deck_id)
         db.session.add(new_user_deck)
-        cache.delete('max_id')
-        cache.delete('deck_detail')
+        cache.delete_memoized(c_get_user_decks, current_user.id)
+        cache.delete('all_decks')
         db.session.commit()
 
 @app.route("/delete/", methods=["POST"])
@@ -103,8 +104,8 @@ def delete():
             db.session.delete(user_deck)
         db.session.delete(d)
         user.decks_deleted += 1
-        cache.delete('max_id')
-        cache.delete('deck_detail')
+        cache.delete_memoized(c_get_user_decks, current_user.id)
+        cache.delete('all_decks')
         db.session.commit()
     else:
         flash(message = "Deck can't be found")
@@ -128,8 +129,8 @@ def edit(deck_id):
             return redirect(url_for("edit", deck_id = deck_id))
         if new_name != name:
             deck.name = new_name
-            cache.delete('max_id')
-            cache.delete('deck_detail')
+            cache.delete_memoized(c_get_user_decks, current_user.id)
+            cache.delete('all_decks')
             db.session.commit()
             
 
@@ -205,7 +206,6 @@ def review(deck_id):
     deck_cards = DeckCards.query.filter_by(deck_id = deck_id).all()
 
     if len(deck_cards) == 0:
-        print("No cards")
         flash("No cards in the deck!")
         return redirect(url_for("dashboard"))
     cards = []
@@ -260,7 +260,7 @@ def getUserId():
 @app.route("/api/getDeckDetails")
 def getDeckDetails():
     decks = {}
-    user_decks = UserDecks.query.filter_by(user_id=current_user.id).all()
+    user_decks = c_get_user_decks(current_user.id)
     for user_deck in user_decks:
         d = Decks.query.filter_by(deck_id=user_deck.deck_id).first()
         deck_cards = DeckCards.query.filter_by(deck_id = user_deck.deck_id).all()
@@ -279,7 +279,7 @@ def getDeckDetails():
 @app.route("/api/getMaxDeckID")
 def getMaxDeckID():
     m = -1
-    decks = Decks.query.all()
+    decks = c_get_all_decks()
     for deck in decks:
         if deck.deck_id > m:
             m = deck.deck_id
@@ -354,4 +354,17 @@ def report():
     s.login(SENDER_ADDRESS, SENDER_PASSWORD)
     s.send_message(msg)
     s.quit()
+
+    os.remove(file)
     return redirect(url_for("dashboard"))
+
+@cache.memoize(120)
+def c_get_user_decks(id):
+    user_decks = UserDecks.query.filter_by(user_id=id).all()
+    return user_decks
+
+
+@cache.cached(timeout=340, key_prefix='all_decks')
+def c_get_all_decks():
+    decks = Decks.query.all()
+    return decks    
